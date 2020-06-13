@@ -188,6 +188,35 @@ class BreezeApiTestCase(unittest.TestCase):
         )
         self.assertEqual(breeze_api.update_person(person_id, '[]'),
                          json.loads(response.content))
+    
+    def test_update_person_with_fields_json(self):
+        response = MockResponse(200, json.dumps([{'person_id': 'Some Data.'}]))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+
+        person_id = '123456'
+        fields_json = json.dumps([{
+            "field_id": "929778337",
+            "field_type": "email",
+            "response": "true",
+            "details": {
+                 "address": "tony@starkindustries.com",
+                 "is_private": 1
+            }
+        }], separators=(',', ':'))
+        breeze_api.update_person(person_id, fields_json)
+        self.assertEqual(
+            connection.url, '%s%s/update?%s' %
+                            (FAKE_SUBDOMAIN, breeze.ENDPOINTS.PEOPLE, '&' . join(
+                                ['person_id=%s' % person_id,
+                                 'fields_json=%s' % fields_json])
+                             )
+        )
+        self.assertEqual(breeze_api.update_person(person_id, fields_json),
+                         json.loads(response.content))
 
     def test_get_events(self):
         response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
@@ -479,9 +508,6 @@ class BreezeApiTestCase(unittest.TestCase):
             '%s%s/list_pledges?campaign_id=329' % (FAKE_SUBDOMAIN,
                                                    breeze.ENDPOINTS.PLEDGES))
 
-    def test_get_tag_folders(self):
-        pass
-
     def test_get_tags(self):
         response = MockResponse(200, json.dumps([{
             "id": "523928",
@@ -520,7 +546,39 @@ class BreezeApiTestCase(unittest.TestCase):
             "%s%s/list_folders" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS)
         )
 
+    def test_assign_tag(self):
+        person_id = '12345'
+        tag_id = '1234567'
+        response = MockResponse(200, json.dumps({
+            'success': True,
+             }))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertEqual(breeze_api.assign_tag(person_id, tag_id),
+                         json.loads(response.content))
+        self.assertEqual(
+            connection.url,
+            "%s%s/assign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))   
 
+    def test_unassign_tag(self):
+        person_id = '12345'
+        tag_id = '1234567'
+        response = MockResponse(
+            200, json.dumps({'success': True
+                             }))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertEqual(breeze_api.unassign_tag(person_id, tag_id),
+                         json.loads(response.content))
+        self.assertEqual(
+            connection.url,
+            "%s%s/unassign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))    
 
 if __name__ == '__main__':
     unittest.main()
